@@ -21,12 +21,10 @@ jobs:
       - name: Create GitHub Pages Branch
         run: |
           git checkout -b gh-pages
-          mv src/* tmp
+          mkdir tmp && mv src/* tmp
           git rm -rf .
-          mv tmp/* .
-          rm -rf tmp
-          git add .
-          git commit -m "Move files"
+          mv tmp/* . && rm -rf tmp
+          git add . && git commit -m "Move files"
 
       - name: Push GitHub Pages Branch
         uses: ad-m/github-push-action@v0.6.0
