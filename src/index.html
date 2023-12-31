@@ -8,12 +8,26 @@
   <title>Raw Pixels</title>
 </head>
 <body>
-  <form>
-    <input data-id="width" type="text" placeholder="Width">
-    <input data-id="height" type="text" placeholder="Height">
-  </form>
-  <input type="file" data-id="filePicker" multiple hidden>
-  <button data-id="filePickerButton">Select Files</button>
-  <div data-id="images" class="imageContainer"></div>
+  <main>
+    <form onsubmit="return false">
+      <input type="file" data-id="filePicker" multiple hidden>
+      <button data-id="filePickerButton">Select Files</button>
+      <label>
+        Width <input data-id="width" type="text" value="240">
+      </label>
+      <label>
+        Height <input data-id="height" type="text" value="480">
+      </label>
+    </form>
+    <div data-id="images" class="imageContainer">
+      <template data-id="canvas">
+        <figure class="canvasContainer">
+          <figcaption></figcaption>
+          <button title="remove">x</button>
+          <canvas></canvas>
+        </figure>
+      </template>
+    </div>
+  </main>
 </body>
 </html>

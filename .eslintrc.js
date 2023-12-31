@@ -18,6 +18,7 @@ module.exports = {
   "rules": {
     "jsdoc/check-indentation": "warn",
     "jsdoc/no-undefined-types": "off",
+    "jsdoc/check-alignment": "off",
     "indent": ["warn", 2, { "SwitchCase": 1 }],
     "linebreak-style": [
       "error",

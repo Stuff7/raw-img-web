@@ -1,7 +1,7 @@
 :root {
   --color-dark: #222;
   --color-light: #ddd;
-  --color-accent: aqua;
+  --color-accent: #ffeb3b;
 }
 
 *, *::before, *::after {
@@ -13,21 +13,38 @@
 }
 
 body {
-  padding: 2rem;
-  background: var(--color-dark);
+  padding: 1rem 1rem 0 1rem;
+  background: linear-gradient(to right, violet, indigo, blue, green, yellow, orange, red);
   color: var(--color-light);
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  height: 100vh;
 }
 
 body, input, button {
-  font-size: 28px;
+  font-size: 20px;
+}
+
+main {
+  padding: 1rem;
+  background: #222222F0;
+  border-radius: 1rem 1rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  height: 100%;
 }
 
 button {
-  padding: 1rem;
+  padding: 0.5rem;
   cursor: pointer;
+  border: 0;
+  border-radius: 0.2rem;
+  background: var(--color-light);
+  color: var(--color-dark);
+  font-variant-caps: all-small-caps;
+}
+
+button:hover {
+  background: var(--color-accent);
 }
 
 h1, label, button, h2 {
@@ -38,9 +55,15 @@ form {
   display: grid;
   grid-auto-flow: column;
   gap: 1rem;
-  padding: 1rem;
-  background: #5559;
-  border: 0.15rem solid var(--color-light);
+}
+
+form label {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  gap: 0.3rem;
+  font-size: 1rem;
+  min-width: 0;
 }
 
 input {
@@ -61,4 +84,64 @@ input:focus {
   gap: 1rem;
   grid-template-columns: repeat(auto-fill, var(--img-width));
   justify-content: space-between;
+  overflow: hidden auto;
+}
+
+.canvasContainer {
+  position: relative;
+}
+
+.canvasContainer > button {
+  padding: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  font-weight: bold;
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: transparent;
+  color: var(--color-light);
+}
+
+.canvasContainer > figcaption, .canvasContainer > button {
+  font-size: 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.canvasContainer > figcaption {
+  width: 100%;
+  padding: 0.25rem;
+  background: var(--color-dark);
+  color: var(--color-light);
+  border-radius: 0.2rem 0.2rem 0 0;
+  border: 1px solid var(--color-light);
+  border-bottom: 0;
+}
+
+.canvasContainer > button:hover {
+  color: var(--color-accent);
+}
+
+@media (max-width: 800px) {
+  form {
+    grid-template-rows: auto auto;
+    grid-template-areas:
+      "a b" 
+      "c c";
+  }
+
+  form > button {
+    grid-area: c;
+  }
+}
+
+@media (max-width: 600px) {
+  form {
+    grid-template-areas:
+      "a" 
+      "b" 
+      "c";
+  }
 }

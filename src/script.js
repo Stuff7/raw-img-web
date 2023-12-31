@@ -9,15 +9,14 @@ const canvasRecord = {};
 
 const CFG = /** @type {Config} */ ({});
 
-setDim("width", 240);
-setDim("height", 480);
+setDim("width");
+setDim("height");
 
 /**
- * @param {"width" | "height"} dim - Dimension to set
- * @param {number} def - Default value if input is NaN
- */
-function setDim(dim, def = NaN) {
-  CFG[dim] = parseInt((dim === "width" ? widthInput : heightInput).value) || def;
+  * @param {"width" | "height"} dim - Dimension to set
+  */
+function setDim(dim) {
+  CFG[dim] = parseInt((dim === "width" ? widthInput : heightInput).value);
   document.documentElement.style.setProperty(`--img-${dim}`, `${CFG[dim]}px`);
   for (const name in canvasRecord) {
     renderYUV420pImage(canvasRecord[name]);
@@ -36,16 +35,7 @@ filePicker.addEventListener("change", async () => {
   await Promise.all(/** @type {Promise<void>[]} */([...filePicker.files].map((file) => new Promise((res) => {
     const reader = new FileReader();
     reader.addEventListener("load", () => {
-      const canvasData = {
-        canvas: /** @type {HTMLCanvasElement} */(document.querySelector(`canvas[data-filename="${file.name}"]`)) ||
-          document.createElement("canvas"),
-        name: file.name,
-        data: new Uint8Array(/** @type {ArrayBuffer} */(reader.result)),
-      };
-      canvasData.canvas.dataset.filename = file.name;
-      renderYUV420pImage(canvasData);
-      imageContainer.append(canvasData.canvas);
-      canvasRecord[file.name] = canvasData;
+      updateCanvasData(file, /** @type {ArrayBuffer} */(reader.result));
       res();
     });
     reader.readAsArrayBuffer(file);
@@ -53,12 +43,55 @@ filePicker.addEventListener("change", async () => {
 });
 
 /**
- * @template {Element} E
- * @template {Class<E>} T
- * @param {string} id - Element data-id
- * @param {T} instance - Instance to type check the element against
- * @returns {ExtractInstance<T>} The Element
- */
+  * Updates canvas data, creates it if it doesn't exist
+  * @param {File} file - Image file to render
+  * @param {ArrayBuffer} data - The file binary data
+  */
+function updateCanvasData(file, data) {
+  if (!(file.name in canvasRecord)) {
+    const template = getElementByIdOrThrow("canvas", HTMLTemplateElement).content.cloneNode(true);
+
+    if (!(template instanceof DocumentFragment && template.firstElementChild)) {
+      throw new Error("Canvas template is not a valid element");
+    }
+
+    const canvasContainer = template.firstElementChild;
+
+    const button = canvasContainer.querySelector("button");
+    const canvas = canvasContainer.querySelector("canvas");
+    const caption = canvasContainer.querySelector("figcaption");
+
+    if (!(button && canvas && caption)) {
+      throw new Error("Canvas template is missing content");
+    }
+
+    caption.textContent = file.name;
+    canvas.dataset.filename = file.name;
+    button.addEventListener("click", () => {
+      canvasContainer.remove();
+      delete canvasRecord[file.name];
+    });
+
+    const canvasData = {
+      canvas,
+      name: file.name,
+      data: new Uint8Array(data),
+    };
+
+    imageContainer.append(canvasContainer);
+    canvasRecord[file.name] = canvasData;
+  }
+
+  renderYUV420pImage(canvasRecord[file.name]);
+}
+
+/**
+  * @template {Element} E
+  * @template {Class<E>} T
+  * @param {string} id - Element data-id
+  * @param {T} instance - Instance to type check the element against
+  * @returns {ExtractInstance<T>} The Element
+  */
 function getElementByIdOrThrow(id, instance) {
   const element = document.querySelector(`[data-id=${id}]`);
   if (!element) {
@@ -71,9 +104,9 @@ function getElementByIdOrThrow(id, instance) {
 }
 
 /**
- * Render YUV420p image data on a canvas.
- * @param {CanvasData} canvasData - The canvas data.
- */
+  * Render YUV420p image data on a canvas.
+  * @param {CanvasData} canvasData - The canvas data.
+  */
 function renderYUV420pImage(canvasData) {
   const { canvas, data: yuvData } = canvasData;
   const { width, height } = CFG;
@@ -113,12 +146,12 @@ function renderYUV420pImage(canvasData) {
 }
 
 /**
- * Clamp a value between a minimum and maximum.
- * @param {number} value - The value to clamp.
- * @param {number} min - The minimum allowed value.
- * @param {number} max - The maximum allowed value.
- * @returns {number} - The clamped value.
- */
+  * Clamp a value between a minimum and maximum.
+  * @param {number} value - The value to clamp.
+  * @param {number} min - The minimum allowed value.
+  * @param {number} max - The maximum allowed value.
+  * @returns {number} - The clamped value.
+  */
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
