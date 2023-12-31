@@ -22,9 +22,17 @@ setDim("width");
 setDim("height");
 updateZoom();
 
-/** @param {ConfigKey} dim - Dimension to set */
-function setDim(dim) {
-  CFG[dim] = Math.abs(parseInt((dim === "width" ? widthInput : heightInput).value) || 1);
+/**
+  * @param {ConfigKey} dim - Dimension to set
+  * @param {number} [val] - Value to set
+  */
+function setDim(dim, val) {
+  if (val === undefined) {
+    CFG[dim] = Math.abs(parseInt((dim === "width" ? widthInput : heightInput).value) || 1);
+  } else {
+    CFG[dim] = val;
+  }
+
   document.documentElement.style.setProperty(`--img-${dim}`, `${CFG[dim]}px`);
   for (const name in canvasRecord) {
     renderYUV420pImage(canvasRecord[name]);
@@ -102,18 +110,24 @@ function updateCanvasData(file, data) {
     canvas.addEventListener("mouseenter", () => setZoomVisibility("visible"));
     canvas.addEventListener("touchstart", () => setZoomVisibility("visible"));
 
+    imageContainer.append(canvasContainer);
+
     const canvasData = {
       canvas,
       name: file.name,
-      data: new Uint8Array(data),
+      data: new Uint8Array(),
       ctx,
     };
-
-    imageContainer.append(canvasContainer);
     canvasRecord[file.name] = canvasData;
   }
+  const canvasData = canvasRecord[file.name];
+  canvasData.data = new Uint8Array(data);
 
-  renderYUV420pImage(canvasRecord[file.name]);
+  if (file.type.includes("image/")) {
+    renderImage(canvasRecord[file.name], file.type);
+  } else {
+    renderYUV420pImage(canvasRecord[file.name]);
+  }
 }
 
 /**
@@ -221,6 +235,31 @@ function renderYUV420pImage(canvasData) {
   }
 
   ctx.putImageData(imageData, 0, 0);
+}
+
+/**
+ * @param {CanvasData} canvasData - The canvas data.
+ * @param {string} fileType - File type.
+ */
+function renderImage(canvasData, fileType) {
+  const { canvas, ctx } = canvasData;
+
+  const blob = new Blob([canvasData.data], { type: fileType });
+  const url = URL.createObjectURL(blob);
+
+  const image = new Image();
+  image.src = url;
+
+  image.onload = function() {
+    const { width, height } = image;
+    canvas.width = width;
+    canvas.height = height;
+    setDim("width", width);
+    setDim("height", height);
+
+    ctx.drawImage(image, 0, 0, width, height);
+    URL.revokeObjectURL(url);
+  };
 }
 
 /**
