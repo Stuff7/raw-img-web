@@ -16,7 +16,7 @@ setDim("height");
   * @param {"width" | "height"} dim - Dimension to set
   */
 function setDim(dim) {
-  CFG[dim] = parseInt((dim === "width" ? widthInput : heightInput).value);
+  CFG[dim] = Math.abs(parseInt((dim === "width" ? widthInput : heightInput).value) || 1);
   document.documentElement.style.setProperty(`--img-${dim}`, `${CFG[dim]}px`);
   for (const name in canvasRecord) {
     renderYUV420pImage(canvasRecord[name]);
