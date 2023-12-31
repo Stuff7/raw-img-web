@@ -3,6 +3,15 @@ const filePickerButton = getElementByIdOrThrow("filePickerButton", HTMLButtonEle
 const widthInput = getElementByIdOrThrow("width", HTMLInputElement);
 const heightInput = getElementByIdOrThrow("height", HTMLInputElement);
 const imageContainer = getElementByIdOrThrow("images", HTMLDivElement);
+const zoomContainer = getElementByIdOrThrow("zoomContainer", HTMLDivElement);
+const zoomCanvas = getElementByIdOrThrow("zoom", HTMLCanvasElement);
+const zoomInput = getElementByIdOrThrow("zoomLevel", HTMLInputElement);
+
+const zoomCtx = /** @type {CanvasRenderingContext2D} */(zoomCanvas.getContext("2d"));
+
+if (!zoomCtx) {
+  throw new Error("Failed to get zoom canvas context");
+}
 
 /** @type {Record<string, CanvasData>} */
 const canvasRecord = {};
@@ -11,10 +20,9 @@ const CFG = /** @type {Config} */ ({});
 
 setDim("width");
 setDim("height");
+updateZoom();
 
-/**
-  * @param {"width" | "height"} dim - Dimension to set
-  */
+/** @param {ConfigKey} dim - Dimension to set */
 function setDim(dim) {
   CFG[dim] = Math.abs(parseInt((dim === "width" ? widthInput : heightInput).value) || 1);
   document.documentElement.style.setProperty(`--img-${dim}`, `${CFG[dim]}px`);
@@ -23,8 +31,14 @@ function setDim(dim) {
   }
 }
 
+/** Updates zoom */
+function updateZoom() {
+  CFG.zoom = Math.abs(parseInt(zoomInput.value) || 1);
+}
+
 widthInput.addEventListener("input", () => setDim("width"));
 heightInput.addEventListener("input", () => setDim("height"));
+zoomInput.addEventListener("input", updateZoom);
 
 filePickerButton.addEventListener("click", () => filePicker.click());
 filePicker.addEventListener("change", async () => {
@@ -65,17 +79,34 @@ function updateCanvasData(file, data) {
       throw new Error("Canvas template is missing content");
     }
 
+    const ctx = canvas.getContext("2d");
+
+    if (!ctx) {
+      throw new Error("Failed to create canvas 2d context");
+    }
+
     caption.textContent = file.name;
     canvas.dataset.filename = file.name;
+
     button.addEventListener("click", () => {
       canvasContainer.remove();
       delete canvasRecord[file.name];
     });
 
+    canvas.addEventListener("mouseleave", () => setZoomVisibility("hidden"));
+    canvas.addEventListener("touchend", () => setZoomVisibility("hidden"));
+
+    canvas.addEventListener("mousemove", renderZoom.bind(canvas));
+    canvas.addEventListener("touchmove", renderZoom.bind(canvas));
+
+    canvas.addEventListener("mouseenter", () => setZoomVisibility("visible"));
+    canvas.addEventListener("touchstart", () => setZoomVisibility("visible"));
+
     const canvasData = {
       canvas,
       name: file.name,
       data: new Uint8Array(data),
+      ctx,
     };
 
     imageContainer.append(canvasContainer);
@@ -83,6 +114,58 @@ function updateCanvasData(file, data) {
   }
 
   renderYUV420pImage(canvasRecord[file.name]);
+}
+
+/**
+  * @param {string} visibility - Zoom visibility
+  */
+function setZoomVisibility(visibility) {
+  document.documentElement.style.setProperty("--zoom-visibility", visibility);
+}
+
+/**
+  * @this {HTMLCanvasElement}
+  * @param {MouseTouchEvent} e - The event
+  */
+function renderZoom(e) {
+  const cursor = getCursorPosition(e);
+  const zoomLevel = CFG.zoom;
+
+  zoomContainer.style.left = `${cursor.browser.x}px`;
+  zoomContainer.style.top = `${cursor.browser.y}px`;
+
+  zoomCtx.clearRect(0, 0, zoomCanvas.width, zoomCanvas.height);
+  zoomCtx.save();
+
+  const gradient = zoomCtx.createRadialGradient(
+    zoomCanvas.width / 2, zoomCanvas.height / 2, 0,
+    zoomCanvas.width / 2, zoomCanvas.height / 2, zoomCanvas.width / (2 * zoomLevel),
+  );
+
+  gradient.addColorStop(0, "transparent");
+  gradient.addColorStop(0.8, "transparent");
+  gradient.addColorStop(1, "rgba(0, 0, 0, 0.3)");
+
+  zoomCtx.fillStyle = gradient;
+  zoomCtx.arc(zoomCanvas.width / 2, zoomCanvas.height / 2, zoomCanvas.width / (2 * zoomLevel), 0, 2 * Math.PI);
+  zoomCtx.fill();
+
+  zoomCtx.closePath();
+  zoomCtx.clip();
+
+  zoomCtx.drawImage(
+    this,
+    cursor.element.x - zoomCanvas.width / (2 * zoomLevel),
+    cursor.element.y - zoomCanvas.height / (2 * zoomLevel),
+    zoomCanvas.width / zoomLevel,
+    zoomCanvas.height / zoomLevel,
+    0,
+    0,
+    zoomCanvas.width,
+    zoomCanvas.height,
+  );
+
+  zoomCtx.restore();
 }
 
 /**
@@ -108,15 +191,10 @@ function getElementByIdOrThrow(id, instance) {
   * @param {CanvasData} canvasData - The canvas data.
   */
 function renderYUV420pImage(canvasData) {
-  const { canvas, data: yuvData } = canvasData;
+  const { canvas, data: yuvData, ctx } = canvasData;
   const { width, height } = CFG;
   canvas.width = width;
   canvas.height = height;
-  const ctx = canvas.getContext("2d");
-
-  if (!ctx) {
-    throw new Error("Failed to create canvas 2d context");
-  }
 
   const imageData = ctx.createImageData(width, height);
 
@@ -154,4 +232,51 @@ function renderYUV420pImage(canvasData) {
   */
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
+}
+
+/**
+  * @param {MouseTouchEvent} e - The event
+  * @returns {CursorPosition} The cursor position
+  */
+function getCursorPosition(e) {
+  if (window.TouchEvent && e instanceof TouchEvent) {
+    const touch = e.touches[0];
+    const target = e.target;
+
+    if (!(target instanceof HTMLElement)) {
+      throw new Error("Cursor position invoked on an invalid element");
+    }
+
+    return {
+      screen: {
+        x: touch.screenX,
+        y: touch.screenY,
+      },
+      browser: {
+        x: touch.clientX,
+        y: touch.clientY,
+      },
+      element: {
+        x: touch.pageX - target.offsetLeft,
+        y: touch.pageY - target.offsetTop,
+      },
+    };
+  }
+
+  const mouse_event = /** @type {MouseEvent} */(e);
+
+  return {
+    screen: {
+      x: mouse_event.screenX,
+      y: mouse_event.screenY,
+    },
+    browser: {
+      x: mouse_event.clientX,
+      y: mouse_event.clientY,
+    },
+    element: {
+      x: mouse_event.offsetX,
+      y: mouse_event.offsetY,
+    },
+  };
 }

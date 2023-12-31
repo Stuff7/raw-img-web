@@ -12,11 +12,14 @@
     <form onsubmit="return false">
       <input type="file" data-id="filePicker" multiple hidden>
       <button data-id="filePickerButton">Select Files</button>
-      <label>
+      <label class="widthInput">
         Width <input data-id="width" type="text" value="240">
       </label>
-      <label>
+      <label class="heightInput">
         Height <input data-id="height" type="text" value="480">
+      </label>
+      <label class="zoomInput">
+        Zoom <input type="number" data-id="zoomLevel" value="2">
       </label>
     </form>
     <div data-id="images" class="imageContainer">
@@ -27,6 +30,9 @@
           <canvas></canvas>
         </figure>
       </template>
+    </div>
+    <div data-id="zoomContainer" class="zoom">
+      <canvas data-id="zoom" width="300" height="300"></canvas>
     </div>
   </main>
 </body>

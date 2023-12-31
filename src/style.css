@@ -17,6 +17,7 @@ body {
   background: linear-gradient(to right, violet, indigo, blue, green, yellow, orange, red);
   color: var(--color-light);
   height: 100vh;
+  overflow: hidden;
 }
 
 body, input, button {
@@ -53,7 +54,8 @@ h1, label, button, h2 {
 
 form {
   display: grid;
-  grid-auto-flow: column;
+  grid-template-areas: "d a c b";
+  grid-template-columns: 0.75fr 1fr 1fr 0.3fr;
   gap: 1rem;
 }
 
@@ -64,6 +66,22 @@ form label {
   gap: 0.3rem;
   font-size: 1rem;
   min-width: 0;
+}
+
+.widthInput {
+  grid-area: a;
+}
+
+.zoomInput {
+  grid-area: b;
+}
+
+.heightInput {
+  grid-area: c;
+}
+
+form > button {
+  grid-area: d;
 }
 
 input {
@@ -124,24 +142,30 @@ input:focus {
   color: var(--color-accent);
 }
 
+.zoom {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  pointer-events: none;
+  visibility: var(--zoom-visibility, hidden);
+}
+
 @media (max-width: 800px) {
   form {
     grid-template-rows: auto auto;
     grid-template-areas:
-      "a b" 
-      "c c";
-  }
-
-  form > button {
-    grid-area: c;
+      "a c b" 
+      "d d d";
+    grid-template-columns: 1fr 1fr 0.3fr;
   }
 }
 
 @media (max-width: 600px) {
   form {
     grid-template-areas:
-      "a" 
-      "b" 
-      "c";
+      "a b" 
+      "c c" 
+      "d d";
+    grid-template-columns: 1fr 0.3fr;
   }
 }
